@@ -15,6 +15,7 @@ from typing import List, Tuple, Dict
 from src.utils import io, sentence_split
 from src.encode import embed_paragraphs, embed_sentences
 from src.align import coarse_align, fine_align
+from src.postprocess import rebuild
 
 from sentence_transformers import SentenceTransformer
 
@@ -273,7 +274,28 @@ def run_pipeline(
 	print(f"Saving output to {output_path}")
 	io.save_jsonl([out], output_path)
 
-	return out
+	sent_index = {
+		(entry["paragraph_A"], entry["paragraph_B"]): entry["sentence_pairs"]
+		for entry in all_sentence_alignments_sorted
+	}
+
+	# Build paragraph-level aligned blocks
+	paragraph_blocks = rebuild.build_paragraph_blocks(
+		all_paragraph_alignments_sorted=[
+			{"src_idx": i, "tgt_idx": j}
+			for (i, j) in para_path
+		],
+		sentence_alignment_index=sent_index
+	)
+
+	chunks = rebuild.build_chunks(paragraph_blocks, max_words=2500)
+
+
+	# Save chunks alongside main output
+	chunks_path = os.path.splitext(output_path)[0] + "_chunks.jsonl"
+	print(f"Saving chunked output to {chunks_path}")
+	io.save_jsonl(chunks, chunks_path)
+
 
 
 def run_pipeline_from_config(config):
