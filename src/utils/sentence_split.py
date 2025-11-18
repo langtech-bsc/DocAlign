@@ -4,8 +4,6 @@ spacy_nlp.add_pipe('sentencizer')
 
 
 def sentence_splitter(text):
-    sentences = []
-    for sentence in text:
-        sentences.extend(sentence.text.strip() for sentence in spacy_nlp(sentence).sents)
-
-    return sentences
+	doc = spacy_nlp(text)
+	sentences = []
+	return [sent.text.strip() for sent in doc.sents]

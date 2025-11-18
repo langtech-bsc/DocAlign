@@ -198,7 +198,7 @@ def run_pipeline(
 	root = Path(input_dir)
 	jsonl_files = list(root.glob("*.jsonl"))
 	path_A = next((f for f in jsonl_files if "A" in f.name), None)
-	path_B = next((f for f in jsonl_files if "A" in f.name), None)
+	path_B = next((f for f in jsonl_files if "B" in f.name), None)
 
 	doc_A = io.load_jsonl(path_A)
 	doc_B = io.load_jsonl(path_B)
@@ -214,6 +214,7 @@ def run_pipeline(
 	if emb_A_path.exists():
 		print(f"Loading cached embeddings for A from {emb_A_path}")
 		emb_A = io.load_embeddings(emb_A_path)
+		print("Shape of A:", emb_A.shape)
 	else:
 		emb_A = embed_paragraphs.get_paragraph_embeddings(
 			paragraphs_A, model=model, model_path=model_path
@@ -224,19 +225,22 @@ def run_pipeline(
 	if emb_B_path.exists():
 		print(f"Loading cached embeddings for B from {emb_B_path}")
 		emb_B = io.load_embeddings(emb_B_path)
+		print("Shape of B:", emb_B.shape)
 	else:
 		emb_B = embed_paragraphs.get_paragraph_embeddings(
 			paragraphs_B, model=model, model_path=model_path
 		)
 		io.save_embeddings(emb_B_path, emb_B)
+
 	print("Running paragraph-level DTW...")
 	para_path = coarse_align.align_paragraphs(emb_A, emb_B, mode=dtw)
+
 	print("Working out sentence-level alignments")
 	all_sentence_alignments = []
 	for (i, j) in tqdm.tqdm(para_path):
 		paraA = paragraphs_A[i]
-		paraB = paragraphs_B[j]
 
+		paraB = paragraphs_B[j]
 		sentence_pairs = fine_align.align_sentence_level(
 			paraA,
 			paraB,
