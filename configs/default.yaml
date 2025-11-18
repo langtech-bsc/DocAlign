@@ -1,0 +1,19 @@
+# =============================================
+# Pipeline configuration file
+# Example: default corpus, no specific cleaning
+# =============================================
+
+# Output directory (will be created if missing)
+output: "data/preprocessed/11/path.jsonl"
+
+
+# Embedding model (will work with any Sentence Transformers based model)
+model: "paraphrase-multilingual-MiniLM-L12-v2"
+# model_path: None   # optional, if you want to point to a local model path
+
+dtw: "approx"
+
+# Input texts
+input: "/home/amash/projects/gutenberg/MT-aligner-pipeline/data/preprocessed/11"
+
+
