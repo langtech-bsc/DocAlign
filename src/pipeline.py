@@ -19,97 +19,19 @@ from src.postprocess import rebuild
 
 from sentence_transformers import SentenceTransformer
 
+def process_folder(subdir, output_dir, model, model_path, dtw):
+    subdir = Path(subdir)
+    output_dir = Path(output_dir)
 
+    jsonl_files = list(subdir.glob("*.jsonl"))
+    if len(jsonl_files) != 2:
+        print(f"⚠ Skipping {subdir}: expected 2 jsonl files, found {len(jsonl_files)}")
+        return
 
-# --- Utility functions -----------------------------------------------------
-
-# def load_jsonl_paragraphs(path: str) -> Tuple[List[str], List[Dict]]:
-#     """
-#     Load a JSONL file where each line is a JSON object with at least:
-#       - "doc_id", "para_id", "lang", "text"
-#     Returns:
-#       - paragraphs: list of text strings, ordered by increasing para_id
-#       - meta: list of dicts (same length) with original metadata (doc_id, para_id, lang)
-#     """
-#     records = []
-#     with open(path, "r", encoding="utf-8") as f:
-#         for line in f:
-#             line = line.strip()
-#             if not line:
-#                 continue
-#             obj = json.loads(line)
-#             # Ensure minimal fields present
-#             if "para_id" not in obj:
-#                 raise ValueError(f"Record missing para_id: {obj}")
-#             if "text" not in obj:
-#                 raise ValueError(f"Record missing text: {obj}")
-#             records.append(obj)
-
-#     # Sort by para_id to ensure deterministic ordering (int)
-#     try:
-#         records.sort(key=lambda r: int(r["para_id"]))
-#     except Exception:
-#         # fallback to current order if para_id not int-like
-#         pass
-
-#     paragraphs = [r["text"] for r in records]
-#     meta = [{"doc_id": r.get("doc_id"), "para_id": r.get("para_id"), "lang": r.get("lang")} for r in records]
-#     return paragraphs, meta
-
-# # --- DTW wrappers ----------------------------------------------------------
-
-# def align_with_dtw(emb_a: np.ndarray, emb_b: np.ndarray) -> List[Tuple[int, int]]:
-#     """
-#     Approximate DTW using fastdtw. Returns list of (i_a, i_b).
-#     """
-#     if fastdtw is None:
-#         raise ImportError("fastdtw not installed. Install with `pip install fastdtw` or use --dtw exact if dtaidistance is available.")
-#     def cos_dist(x, y):
-#         # x, y are 1-D numpy arrays
-#         return 1.0 - float(np.dot(x, y) / (np.linalg.norm(x) * np.linalg.norm(y) + 1e-9))
-#     distance, path = fastdtw(emb_a, emb_b, dist=cos_dist)
-#     # fastdtw returns list of (idx_in_a, idx_in_b)
-#     return path
-
-
-# def align_with_exact_dtw(emb_a: np.ndarray, emb_b: np.ndarray) -> List[Tuple[int, int]]:
-#     """
-#     Exact DTW using dtaidistance (O(N*M)). Returns list of (i_a, i_b).
-#     """
-#     if dtw_exact is None:
-#         raise ImportError("dtaidistance not installed. Install with `pip install dtaidistance` to use exact DTW.")
-#     # normalize to cosine distance matrix: 1 - cosine_sim
-#     # dtaidistance expects a 2D numpy array of distances
-#     # Compute pairwise distance matrix safely (may be large)
-#     na = emb_a.shape[0]
-#     nb = emb_b.shape[0]
-#     # compute norms
-#     norms_a = np.linalg.norm(emb_a, axis=1) + 1e-9
-#     norms_b = np.linalg.norm(emb_b, axis=1) + 1e-9
-#     # dot product matrix
-#     dot = np.dot(emb_a, emb_b.T)  # shape (na, nb)
-#     dist_matrix = 1.0 - (dot / (norms_a[:, None] * norms_b[None, :]))
-#     # dtaidistance provides warping path from distance matrix
-#     path = dtw_exact.warping_path_from_distance_matrix(dist_matrix)
-#     # path is a list of (i_a, i_b)
-#     return path
-
-
-# # --- I/O helpers -----------------------------------------------------------
-
-# def save_path_json(path: List[Tuple[int, int]], out_path: str):
-#     """Save DTW path as JSON list of objects {"a": i, "b": j}"""
-#     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-#     with open(out_path, "w", encoding="utf-8") as f:
-#         json.dump([{"a": int(i), "b": int(j)} for i, j in path], f, ensure_ascii=False, indent=2)
-
-
-# def save_embeddings(emb: np.ndarray, out_path: str):
-#     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-#     np.save(out_path, emb)
-
-
-# --- CLI / Orchestration --------------------------------------------------
+    print(f"[PID {os.getpid()}] Processing {subdir.name}")
+    # Reuse your existing inner code (everything inside the for-loop)
+    # Just extract it into this function cleanly
+    # You would move all the code from the for-loop into here.
 
 
 def run(par_file_a: str, par_file_b: str, out_dir: str,
@@ -182,119 +104,125 @@ def run(par_file_a: str, par_file_b: str, out_dir: str,
 
 def run_pipeline(
 		input_dir,
-		output_path,
+		output_dir,
 		model="labse",
 		model_path=None,
 		dtw="approx"
 	):
-	"""
-	Run the document-level alignment pipeline from config specs.
-	Steps:
-	  1. Load JSONL paragraph data
-	  2. Compute paragraph embeddings
-	  3. Paragraph-level DTW alignment
-	  4. Save alignment results
-	"""
+	input_dir = Path(input_dir)
+	output_dir = Path(output_dir)
+
 	print("Loading data...")
-	root = Path(input_dir)
-	jsonl_files = list(root.glob("*.jsonl"))
-	path_A = next((f for f in jsonl_files if "A" in f.name), None)
-	path_B = next((f for f in jsonl_files if "B" in f.name), None)
+	for subdir in sorted([d for d in input_dir.iterdir() if d.is_dir()]):
+		jsonl_files = list(subdir.glob("*.jsonl"))
 
-	doc_A = io.load_jsonl(path_A)
-	doc_B = io.load_jsonl(path_B)
+		if len(jsonl_files) != 2:
+			print(f"⚠ Skipping {subdir}: expected exactly 2 jsonl files, found {len(jsonl_files)}")
+			continue
 
-	paragraphs_A = [entry["text"] for entry in doc_A]
-	paragraphs_B = [entry["text"] for entry in doc_B]
+		outdir = output_dir / f"{subdir.name}"
+	
+		path_A = next((f for f in jsonl_files if "A" in f.name), None)
+		path_B = next((f for f in jsonl_files if "B" in f.name), None)
 
-	emb_A_path = root / "A.para.npy"
-	emb_B_path = root / "B.para.npy"
+		doc_A = io.load_jsonl(path_A)
+		doc_B = io.load_jsonl(path_B)
 
-	print("Embedding paragraphs...")
-	# A
-	if emb_A_path.exists():
-		print(f"Loading cached embeddings for A from {emb_A_path}")
-		emb_A = io.load_embeddings(emb_A_path)
-		print("Shape of A:", emb_A.shape)
-	else:
-		emb_A = embed_paragraphs.get_paragraph_embeddings(
-			paragraphs_A, model=model, model_path=model_path
+		paragraphs_A = [entry["text"] for entry in doc_A]
+		paragraphs_B = [entry["text"] for entry in doc_B]
+
+		emb_A_path = root / "A.para.npy"
+		emb_B_path = root / "B.para.npy"
+
+		print("Embedding paragraphs...")
+		# A
+		if emb_A_path.exists():
+			print(f"Loading cached embeddings for A from {emb_A_path}")
+			emb_A = io.load_embeddings(emb_A_path)
+			print("Shape of A:", emb_A.shape)
+		else:
+			emb_A = embed_paragraphs.get_paragraph_embeddings(
+				paragraphs_A, model=model, model_path=model_path
+			)
+			io.save_embeddings(emb_A_path, emb_A)
+
+		# B
+		if emb_B_path.exists():
+			print(f"Loading cached embeddings for B from {emb_B_path}")
+			emb_B = io.load_embeddings(emb_B_path)
+			print("Shape of B:", emb_B.shape)
+		else:
+			emb_B = embed_paragraphs.get_paragraph_embeddings(
+				paragraphs_B, model=model, model_path=model_path
+			)
+			io.save_embeddings(emb_B_path, emb_B)
+
+		print("Running paragraph-level DTW...")
+		para_path = coarse_align.align_paragraphs(emb_A, emb_B, mode=dtw)
+
+		print("Working out sentence-level alignments")
+		all_sentence_alignments = []
+		for (i, j) in tqdm.tqdm(para_path):
+			paraA = paragraphs_A[i]
+
+			paraB = paragraphs_B[j]
+			sentence_pairs = fine_align.align_sentence_level(
+				paraA,
+				paraB,
+				model=model,
+				model_path=model_path,
+			)
+
+			all_sentence_alignments.append({
+				"paragraph_A": i,
+				"paragraph_B": j,
+				"sentence_pairs": sentence_pairs,
+			})
+
+			all_sentence_alignments_sorted = sorted(
+				all_sentence_alignments,
+				key=lambda x: (x["paragraph_A"], x["paragraph_B"])
+			)
+		# # Prepare output
+		io.ensure_dir(os.path.dirname(output_path))
+
+		out = {
+			"input_A": path_A,
+			"input_B": path_B,
+			"model": model,
+			"dtw": dtw,
+			"alignment_path": para_path,
+			"sentence_alignments": all_sentence_alignments_sorted
+		}
+
+		print(f"Saving paths and sentence_alignments to {outdir}")
+		outfile1 = outdir / f"{subdir.name}_meta.jsonl"
+		outfile1.parent.mkdir(parents=True, exist_ok=True)
+		safe_out =io._make_json_safe(out)
+		io.save_jsonl([safe_out], outfile1)
+
+		sent_index = {
+			(entry["paragraph_A"], entry["paragraph_B"]): entry["sentence_pairs"]
+			for entry in all_sentence_alignments_sorted
+		}
+
+		# Build paragraph-level aligned blocks
+		paragraph_blocks = rebuild.build_paragraph_blocks(
+			all_paragraph_alignments_sorted=[
+				{"src_idx": i, "tgt_idx": j}
+				for (i, j) in para_path
+			],
+			sentence_alignment_index=sent_index
 		)
-		io.save_embeddings(emb_A_path, emb_A)
 
-	# B
-	if emb_B_path.exists():
-		print(f"Loading cached embeddings for B from {emb_B_path}")
-		emb_B = io.load_embeddings(emb_B_path)
-		print("Shape of B:", emb_B.shape)
-	else:
-		emb_B = embed_paragraphs.get_paragraph_embeddings(
-			paragraphs_B, model=model, model_path=model_path
-		)
-		io.save_embeddings(emb_B_path, emb_B)
-
-	print("Running paragraph-level DTW...")
-	para_path = coarse_align.align_paragraphs(emb_A, emb_B, mode=dtw)
-
-	print("Working out sentence-level alignments")
-	all_sentence_alignments = []
-	for (i, j) in tqdm.tqdm(para_path):
-		paraA = paragraphs_A[i]
-
-		paraB = paragraphs_B[j]
-		sentence_pairs = fine_align.align_sentence_level(
-			paraA,
-			paraB,
-			model=model,
-			model_path=model_path,
-		)
-
-		all_sentence_alignments.append({
-			"paragraph_A": i,
-			"paragraph_B": j,
-			"sentence_pairs": sentence_pairs,
-		})
-
-		all_sentence_alignments_sorted = sorted(
-			all_sentence_alignments,
-			key=lambda x: (x["paragraph_A"], x["paragraph_B"])
-		)
-	# # Prepare output
-	io.ensure_dir(os.path.dirname(output_path))
-
-	out = {
-		"input_A": path_A,
-		"input_B": path_B,
-		"model": model,
-		"dtw": dtw,
-		"alignment_path": para_path,
-		"sentence_alignments": all_sentence_alignments_sorted
-	}
-
-	print(f"Saving output to {output_path}")
-	io.save_jsonl([out], output_path)
-
-	sent_index = {
-		(entry["paragraph_A"], entry["paragraph_B"]): entry["sentence_pairs"]
-		for entry in all_sentence_alignments_sorted
-	}
-
-	# Build paragraph-level aligned blocks
-	paragraph_blocks = rebuild.build_paragraph_blocks(
-		all_paragraph_alignments_sorted=[
-			{"src_idx": i, "tgt_idx": j}
-			for (i, j) in para_path
-		],
-		sentence_alignment_index=sent_index
-	)
-
-	chunks = rebuild.build_chunks(paragraph_blocks, max_words=2500)
+		chunks = rebuild.build_chunks(paragraph_blocks, max_words=2500)
 
 
-	# Save chunks alongside main output
-	chunks_path = os.path.splitext(output_path)[0] + "_chunks.jsonl"
-	print(f"Saving chunked output to {chunks_path}")
-	io.save_jsonl(chunks, chunks_path)
+		# Save chunks alongside main output
+		outfile2 = outdir / f"{subdir.name}_chunks.jsonl"
+		outfile2.parent.mkdir(parents=True, exist_ok=True)
+		print(f"Saving chunked output to {outfile2}")
+		io.save_jsonl(chunks, outfile2)
 
 
 
