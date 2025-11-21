@@ -7,37 +7,42 @@ def count_words(text):
 def build_paragraph_blocks(all_paragraph_alignments_sorted,
                            sentence_alignment_index):
     """
-    Turn each aligned paragraph pair into a (src_block, tgt_block, para_ids) tuple.
-    sentence_alignment_index: dict keyed by (paraA_idx, paraB_idx)
+    Turn each aligned paragraph pair/group into a (src_block, tgt_block, para_ids) tuple.
+    sentence_alignment_index: dict keyed by (paraA_indices_tuple, paraB_indices_tuple)
         giving the list of sentence-level alignments.
     """
     blocks = []
-
     for entry in all_paragraph_alignments_sorted:
-        paraA_idx = entry["src_idx"]
-        paraB_idx = entry["tgt_idx"]
+        paraA_idx = entry["src_idx"]  # This is now a tuple like (0, 1)
+        paraB_idx = entry["tgt_idx"]  # This is now a tuple like (0,)
+        
+        # Ensure they're tuples (in case single values were passed)
+        if not isinstance(paraA_idx, tuple):
+            paraA_idx = (paraA_idx,)
+        if not isinstance(paraB_idx, tuple):
+            paraB_idx = (paraB_idx,)
         
         sent_pairs = sentence_alignment_index.get((paraA_idx, paraB_idx), [])
+        
         if not sent_pairs:
             # No aligned sentences – skip
             continue
-
+        
         # Reconstruct paragraph-level text
         src_sents = [p["src_text"] for p in sent_pairs]
         tgt_sents = [p["tgt_text"] for p in sent_pairs]
-
         src_block = " ".join(src_sents)
         tgt_block = " ".join(tgt_sents)
-
+        
         blocks.append({
-            "src_idx": paraA_idx,
-            "tgt_idx": paraB_idx,
+            "src_idx": paraA_idx,  # Keep as tuple
+            "tgt_idx": paraB_idx,  # Keep as tuple
             "src_block": src_block,
             "tgt_block": tgt_block,
             "src_words": count_words(src_block),
             "tgt_words": count_words(tgt_block),
         })
-
+    
     return blocks
 
 
