@@ -1,5 +1,5 @@
 PyYAML~=6.0.3
-numpy~=2.3.5
+numpy
 sentence-transformers~=5.1.2
 fastdtw~=0.3.4
 dtaidistance~=2.3.13

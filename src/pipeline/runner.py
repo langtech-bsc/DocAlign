@@ -10,7 +10,7 @@ from .output_builder import OutputBuilder
 
 def process_subdir(subdir, model, model_path, aligner, output_builder):
     try:
-        print(f"\n{'=' * 60}\nProcessing {subdir}\n{'=' * 60}")
+        print(f"\n{'=' * 60}\nProcessing {subdir}\n{'=' * 60}", flush=True)
 
         # Load document pair
         doc_pair = DocumentPair.from_directory(subdir)
@@ -22,7 +22,7 @@ def process_subdir(subdir, model, model_path, aligner, output_builder):
         # Save outputs
         output_builder.save_alignment(doc_pair, results, subdir)
     except Exception as e:
-        print(f"❌ Error processing {subdir}: {e}")
+        print(f"❌ Error processing {subdir}: {e}", flush=True)
 
 
 def run_pipeline(input_dir, output_dir, model="labse", model_path=None, dtw="approx"):
@@ -52,4 +52,4 @@ def run_pipeline(input_dir, output_dir, model="labse", model_path=None, dtw="app
     with Pool(processes=n_workers) as pool:
         pool.starmap(process_subdir, tasks)
 
-    print(f"\n{'=' * 60}\nPipeline complete!\n{'=' * 60}")
+    print(f"\n{'=' * 60}\nPipeline complete!\n{'=' * 60}", flush=True)
