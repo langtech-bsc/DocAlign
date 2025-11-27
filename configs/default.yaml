@@ -4,16 +4,16 @@
 # =============================================
 
 # Output directory (will be created if missing)
-output: "data/preprocessed/11/path.jsonl"
+output: "data/aligned"
 
 
 # Embedding model (will work with any Sentence Transformers based model)
-model: "paraphrase-multilingual-MiniLM-L12-v2"
-# model_path: None   # optional, if you want to point to a local model path
+model: "labse"
+model_path: "/gpfs/projects/bsc88/mt_translation/mt-cleaning-pipeline/labse_model"
 
 dtw: "approx"
 
 # Input texts
-input: "/home/amash/projects/gutenberg/MT-aligner-pipeline/data/preprocessed/11"
+input: "data/raw"
 
 
