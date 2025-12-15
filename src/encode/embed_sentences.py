@@ -7,9 +7,9 @@ _MODEL_CACHE = {}
 def load_model(name="paraphrase-multilingual-MiniLM-L12-v2", model_path=None):
 	if name not in _MODEL_CACHE:
 		if model_path:
-			_MODEL_CACHE[name] = SentenceTransformer(model_path, device='cpu')
+			_MODEL_CACHE[name] = SentenceTransformer(model_path)
 		else:
-			_MODEL_CACHE[name] = SentenceTransformer(name, device='cpu')
+			_MODEL_CACHE[name] = SentenceTransformer(name)
 	return _MODEL_CACHE[name]
 
 def get_sentence_embeddings(sentences, model="paraphrase-multilingual-MiniLM-L12-v2", model_path=None):

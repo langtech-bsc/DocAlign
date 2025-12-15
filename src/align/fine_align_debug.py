@@ -75,7 +75,7 @@ def show_pairs(pairs, sentences_A, sentences_B, label, max_show=15):
 			preview_a = sentences_A[i]#[:45] + "..." if len(sentences_A[i]) > 45 else sentences_A[i]
 			print(f"       A: {preview_a}")
 		if j < len(sentences_B):
-			preview_b = sentences_B[j][:45]# + "..." if len(sentences_B[j]) > 45 else sentences_B[j]
+			preview_b = sentences_B[j]#[:45] + "..." if len(sentences_B[j]) > 45 else sentences_B[j]
 			print(f"       B: {preview_b}")
 	if len(pairs) > max_show:
 		print(f"  ... and {len(pairs) - max_show} more pairs")
@@ -184,7 +184,7 @@ def fast_monotonic_window_alignment(
 		best_score = float(sims[best_local])
 		best_j = candidates[best_local]
 
-		if debug and i < 3:  # Show first few
+		if debug:  # Show first few
 			print(f"  A[{i}]: best_j={best_j}, score={best_score:.4f}, candidates={candidates}")
 
 		if best_score >= threshold:
@@ -303,7 +303,7 @@ def align_sentence_level(
 	# BASELINE
 	# =====================================================================
 	if debug:
-		print_section("STAGE 2: Baseline Alignment (window=10, threshold=0.60)")
+		print_section("STAGE 2: Baseline Alignment (window=10, threshold=0.70)")
 	
 	baseline = fast_monotonic_window_alignment(
 		emb_A, emb_B, sentences_A, sentences_B,
@@ -334,9 +334,9 @@ def align_sentence_level(
 	# FUZZY GROUP ALIGN
 	# =====================================================================
 	if debug:
-		print_section("STAGE 4: Fuzzy Group Alignment (threshold=0.60)")
+		print_section("STAGE 4: Fuzzy Group Alignment (threshold=0.8)")
 	
-	fuzzy = fuzzy_group_align(emb_A, emb_B, threshold=0.90)
+	fuzzy = fuzzy_group_align(emb_A, emb_B, threshold=0.8)
 	
 	if debug:
 		print(f"Fuzzy group pairs: {len(fuzzy)}")
@@ -525,24 +525,19 @@ def align_sentence_level(
 		print_section("STAGE 11: Building Atomic Pairs List")
 	
 	atomic = []
+	MIN_ATOMIC_SCORE = 0.65
 	for (s0, s1, t0, t1, member_pairs) in groups:
 		for (i, j, coarse) in member_pairs:
-			try:
-				score = exact_cos(i, j, emb_A, emb_B)
-				if np.isnan(score):
-					score = float(coarse)
-			except Exception as e:
-				if debug:
-					print(f"  Error computing exact_cos({i}, {j}): {e}")
-				score = float(coarse)
+			score = float(coarse)
 
-			atomic.append({
-				"src_idx": int(i),
-				"tgt_idx": int(j),
-				"src_text": sentences_A[i],
-				"tgt_text": sentences_B[j],
-				"score": float(score),
-			})
+			if score >= MIN_ATOMIC_SCORE:
+				atomic.append({
+					"src_idx": int(i),
+					"tgt_idx": int(j),
+					"src_text": sentences_A[i],
+					"tgt_text": sentences_B[j],
+					"score": float(score),
+				})
 
 	if debug:
 		print(f"Atomic pairs: {len(atomic)}")

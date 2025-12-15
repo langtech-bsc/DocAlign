@@ -53,10 +53,10 @@ class DocumentPair:
         
         # Load/compute embeddings for A
         if cache_a.exists():
-            print(f"Loading cached embeddings from {cache_a}")
+            print(f"Loading cached embeddings from {cache_a}", flush=True)
             self._emb_a = io.load_embeddings(cache_a)
         else:
-            print(f"Computing embeddings for {self.lang_a}...")
+            print(f"Computing embeddings for {self.lang_a}...", flush=True)
             self._emb_a = embed_paragraphs.get_paragraph_embeddings(
                 self._paragraphs_a, model=model, model_path=model_path
             )
@@ -64,10 +64,10 @@ class DocumentPair:
         
         # Load/compute embeddings for B
         if cache_b.exists():
-            print(f"Loading cached embeddings from {cache_b}")
+            print(f"Loading cached embeddings from {cache_b}", flush=True)
             self._emb_b = io.load_embeddings(cache_b)
         else:
-            print(f"Computing embeddings for {self.lang_b}...")
+            print(f"Computing embeddings for {self.lang_b}...", flush=True)
             self._emb_b = embed_paragraphs.get_paragraph_embeddings(
                 self._paragraphs_b, model=model, model_path=model_path
             )

@@ -1,4 +1,5 @@
 """Build and save alignment outputs."""
+import os
 from pathlib import Path
 from src.utils import io
 from src.postprocess import rebuild
@@ -11,8 +12,9 @@ class OutputBuilder:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
     
-    def save_alignment(self, doc_pair, alignment_results, name):
+    def save_alignment(self, doc_pair, alignment_results, path):
         """Save alignment metadata and chunks."""
+        name = os.path.basename(path)
         subdir = self.output_dir / name
         subdir.mkdir(parents=True, exist_ok=True)
         
@@ -23,15 +25,15 @@ class OutputBuilder:
         chunks = self._build_chunks(alignment_results)
         self._save_chunks(chunks, subdir, name)
         
-        print(f"✓ Saved {len(chunks)} chunks to {subdir}")
+        print(f"✓ Saved {len(chunks)} chunks to {subdir}", flush=True)
     
     def _save_metadata(self, doc_pair, results, subdir, name):
         """Save alignment metadata to JSONL."""
         meta = {
+            "lang_A": str(doc_pair.lang_a),
             "input_A": str(doc_pair.path_a),
+            "lang_B": str(doc_pair.lang_b),
             "input_B": str(doc_pair.path_b),
-            "model": "labse",  # Could be passed in
-            "dtw": "approx",   # Could be passed in
             "alignment_path": results["para_path"],
             "sentence_alignments": results["sentence_alignments"]
         }

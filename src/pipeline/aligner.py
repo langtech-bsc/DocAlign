@@ -1,7 +1,7 @@
 """Core alignment logic."""
 import tqdm
 from src.utils import collapse_path
-from src.align import coarse_align, fine_align_debug
+from src.align import coarse_align, fine_align_spans
 
 
 class DocumentAligner:
@@ -19,15 +19,15 @@ class DocumentAligner:
         Returns:
             dict with keys: para_path, collapsed, sentence_alignments
         """
-        print("Running paragraph-level DTW...")
+        print("Running paragraph-level DTW...", flush=True)
         para_path = coarse_align.align_paragraphs(
             doc_pair.emb_a, doc_pair.emb_b, mode=self.dtw_mode
         )
         
         collapsed = collapse_path.collapse_path_to_ranges(para_path)
-        print("Collapsed paragraph ranges:", collapsed)
+        print("Collapsed paragraph ranges:", collapsed, flush=True)
         
-        print("Computing sentence-level alignments...")
+        print("Computing sentence-level alignments...", flush=True)
         sentence_alignments = self._align_sentences(
             doc_pair.paragraphs_a,
             doc_pair.paragraphs_b,
@@ -48,7 +48,7 @@ class DocumentAligner:
             combined_a = " ".join(paragraphs_a[i] for i in source_indices)
             combined_b = " ".join(paragraphs_b[i] for i in target_indices)
             
-            sentence_pairs = fine_align_debug.align_sentence_level(
+            sentence_pairs = fine_align_spans.align_sentence_level(
                 combined_a, combined_b,
                 model=self.model,
                 model_path=self.model_path
