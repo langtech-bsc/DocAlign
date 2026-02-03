@@ -2,7 +2,7 @@
 from pathlib import Path
 import os
 import multiprocessing as mp
-from .document_loader import DocumentPair
+from .document_loader import *
 from .aligner import DocumentAligner
 from .output_builder import OutputBuilder
 
@@ -13,7 +13,14 @@ def already_processed(subdir, output_dir):
 
 def process_subdir_wrapper(args):
     """Wrapper to unpack arguments and handle initialization per process."""
-    subdir, model, model_path, dtw, output_dir = args
+    subdir, input_format, model, model_path, dtw, output_dir = args
+    # Map input format strings to their corresponding classes
+    FORMAT_CLASSES = {
+        'document_pair': DocumentPair,
+        'single_document': SingleDocument,
+        'multi_document': MultiDocument,
+        # Add other formats as needed
+    }
     
     try:
         print(f"\n{'=' * 60}\nProcessing {subdir}\n{'=' * 60}", flush=True)
@@ -21,9 +28,12 @@ def process_subdir_wrapper(args):
         # Initialize components inside the worker process (important for 'spawn')
         aligner = DocumentAligner(model, model_path, dtw)
         output_builder = OutputBuilder(output_dir)
+        doc_class = FORMAT_CLASSES.get(input_format)
+        if doc_class is None:
+            raise ValueError(f"Unknown input format: {input_format}")
         
         # Load document pair
-        doc_pair = DocumentPair.from_directory(subdir)
+        doc_pair = doc_class.from_directory(subdir)
         doc_pair.load_embeddings(model, model_path)
         
         # Align
@@ -41,7 +51,7 @@ def process_subdir_wrapper(args):
         print(f"❌ Error processing {subdir.name}: {error_msg}", flush=True)
         return (subdir.name, "failed", error_msg)
 
-def run_pipeline(input_dir, output_dir, model="labse", model_path=None, dtw="approx", use_multiprocessing=True):
+def run_pipeline(input_dir, input_format, output_dir, model="labse", model_path=None, dtw="approx", use_multiprocessing=True):
     """Process all document pairs in input directory."""
     
     input_dir = Path(input_dir)
@@ -73,7 +83,7 @@ def run_pipeline(input_dir, output_dir, model="labse", model_path=None, dtw="app
         
         # Prepare args for each task
         tasks = [
-            (subdir, model, model_path, dtw, output_dir)
+            (subdir, input_format, model, model_path, dtw, output_dir)
             for subdir in to_process
         ]
         

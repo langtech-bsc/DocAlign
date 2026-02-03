@@ -16,6 +16,7 @@ def main():
     
     run_pipeline(
         input_dir=config["input"],
+		input_format=config["input_format"]
         output_dir=config["output"],
         model=config.get("model", "labse"),
         model_path=config.get("model_path"),

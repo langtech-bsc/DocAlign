@@ -14,6 +14,7 @@ model_path: "/gpfs/projects/bsc88/mt_translation/mt-cleaning-pipeline/labse_mode
 dtw: "approx"
 
 # Input texts
-input: "data/raw"
+input: "/gpfs/scratch/bsc88/bsc088400/MT-aligner-pipeline/data/raw"
+input_format: "SingleDocument"
 
 

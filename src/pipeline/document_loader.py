@@ -3,8 +3,13 @@ from pathlib import Path
 from src.utils import io
 from src.encode import embed_paragraphs
 
-
-class DocumentPair:
+class IOFormat:
+	
+	def __init__(self, path, cache_dir=None):
+		self.path = Path(path)
+		self.cache_dir = cache_dir or self.path.parent
+		
+class DocumentPair(IOFormat):
     """Represents a pair of documents to align."""
     
     def __init__(self, path_a, path_b, cache_dir=None):
