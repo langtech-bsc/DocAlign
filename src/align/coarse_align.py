@@ -8,12 +8,16 @@ def cosine_distance(a, b):
 
 def align_paragraphs(emb_A, emb_B, mode="approx"):
 	"""
-	Returns a DTW path: list of (i, j) pairs mapping paragraphs A[i] <-> B[j].
+	Returns (path, normalized_cost, dist_matrix):
+	  - path: list of (i, j) pairs mapping paragraphs A[i] <-> B[j].
+	  - normalized_cost: average cosine distance per alignment step (0 = perfect, 1 = orthogonal).
+	  - dist_matrix: pairwise cosine distance matrix (exact mode) or None (approx mode).
 	mode: "approx" uses fastdtw, "exact" uses quadratic DTW.
 	"""
 	if mode == "approx":
-		_, path = fastdtw(emb_A, emb_B, dist=cosine_distance)
-		return path
+		total_cost, path = fastdtw(emb_A, emb_B, dist=cosine_distance)
+		norm_cost = total_cost / max(len(path), 1)
+		return path, norm_cost, None
 
 	elif mode == "exact":
 		# Pairwise cosine distance matrix
@@ -23,9 +27,9 @@ def align_paragraphs(emb_A, emb_B, mode="approx"):
 			np.linalg.norm(emb_B, axis=1)[None, :] + 1e-9
 		)
 
-		cost, path = dtw_from_cost_matrix(dist_matrix, window=None)
-
-		return path
+		total_cost, path = dtw_from_cost_matrix(dist_matrix, window=None)
+		norm_cost = total_cost / max(len(path), 1)
+		return path, norm_cost, dist_matrix
 
 	else:
 		raise ValueError(f"Unknown DTW mode: {mode}")

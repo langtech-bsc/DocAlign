@@ -16,5 +16,7 @@ dtw: "approx"
 # Input texts
 input: "/gpfs/scratch/bsc88/bsc088400/MT-aligner-pipeline/data/raw"
 input_format: "SingleDocument"
+input_type: "paragraph"
 
-
+# Data mode: "parallel" (default) or "comparable"
+data_mode: "parallel"

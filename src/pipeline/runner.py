@@ -13,85 +13,88 @@ def already_processed(subdir, output_dir):
 
 def process_subdir_wrapper(args):
     """Wrapper to unpack arguments and handle initialization per process."""
-    subdir, input_format, model, model_path, dtw, output_dir = args
+    subdir, input_format, model, model_path, dtw, output_dir, input_type, thresholds = args
     # Map input format strings to their corresponding classes
     FORMAT_CLASSES = {
         'document_pair': DocumentPair,
-        'single_document': SingleDocument,
-        'multi_document': MultiDocument,
-        # Add other formats as needed
     }
-    
+
     try:
         print(f"\n{'=' * 60}\nProcessing {subdir}\n{'=' * 60}", flush=True)
-        
+
+        min_chunk_score = thresholds.get("min_chunk_score", 0.0) if thresholds else 0.0
+
         # Initialize components inside the worker process (important for 'spawn')
-        aligner = DocumentAligner(model, model_path, dtw)
-        output_builder = OutputBuilder(output_dir)
+        aligner = DocumentAligner(model, model_path, dtw, thresholds=thresholds)
+        output_builder = OutputBuilder(output_dir, input_type=input_type, min_chunk_score=min_chunk_score)
         doc_class = FORMAT_CLASSES.get(input_format)
         if doc_class is None:
             raise ValueError(f"Unknown input format: {input_format}")
-        
+
         # Load document pair
         doc_pair = doc_class.from_directory(subdir)
         doc_pair.load_embeddings(model, model_path)
-        
+
         # Align
         results = aligner.align(doc_pair)
-        
+
         # Save outputs
         output_builder.save_alignment(doc_pair, results, subdir)
-        
+
         print(f"✓ Successfully processed {subdir.name}", flush=True)
         return (subdir.name, "success", None)
-        
+
     except Exception as e:
         import traceback
         error_msg = f"Error: {str(e)}\n{traceback.format_exc()}"
         print(f"❌ Error processing {subdir.name}: {error_msg}", flush=True)
         return (subdir.name, "failed", error_msg)
 
-def run_pipeline(input_dir, input_format, output_dir, model="labse", model_path=None, dtw="approx", use_multiprocessing=True):
+def run_pipeline(input_dir, input_format, output_dir, model="labse", model_path=None,
+                 dtw="approx", input_type="paragraph", thresholds=None,
+                 use_multiprocessing=True):
     """Process all document pairs in input directory."""
-    
+
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
-    
+
+    min_chunk_score = thresholds.get("min_chunk_score", 0.0) if thresholds else 0.0
+
     # Find all subdirectories
     subdirs = sorted([d for d in input_dir.iterdir() if d.is_dir()])
     if not subdirs:
         subdirs = [input_dir]
-    
+
     print(f"Found {len(subdirs)} total subdirectories")
-    
+
     # Filter out subdirs that are already processed
     to_process = [
-        d for d in subdirs 
+        d for d in subdirs
         if not already_processed(d, output_dir)
     ]
-    
+
     if not to_process:
         print("Everything already processed.")
         return
-    
+
     print(f"Skipping {len(subdirs) - len(to_process)} previously processed subdirectories.")
     print(f"Will process {len(to_process)} subdirectories.")
-    
+
     if use_multiprocessing:
         # MULTIPROCESSING MODE (for CPU or multiple GPUs)
         mp.set_start_method('spawn', force=True)
-        
+
         # Prepare args for each task
         tasks = [
-            (subdir, input_format, model, model_path, dtw, output_dir)
+            (subdir, input_format, model, model_path, dtw, output_dir, input_type, thresholds)
             for subdir in to_process
         ]
-        
+
         # Limit workers for GPU - each process loads model into GPU memory
         max_gpu_workers = 8  # Adjust based on your GPU memory and model size
         n_workers = min(max_gpu_workers, max(1, os.cpu_count() - 1))
         print(f"Using {n_workers} workers (limited for GPU memory management)\n")
-        
+
         # compute all the tasks and collect results
         results = []
         with mp.Pool(processes=n_workers) as pool:
@@ -99,39 +102,39 @@ def run_pipeline(input_dir, input_format, output_dir, model="labse", model_path=
     else:
         # SEQUENTIAL MODE (recommended for single GPU)
         print("Processing sequentially (recommended for GPU)\n")
-        
+
         # Initialize components once
-        aligner = DocumentAligner(model, model_path, dtw)
-        output_builder = OutputBuilder(output_dir)
-        
+        aligner = DocumentAligner(model, model_path, dtw, thresholds=thresholds)
+        output_builder = OutputBuilder(output_dir, input_type=input_type, min_chunk_score=min_chunk_score)
+
         results = []
         for i, subdir in enumerate(to_process, 1):
             print(f"\n[{i}/{len(to_process)}] Processing {subdir.name}", flush=True)
-            
+
             try:
                 # Load document pair
                 doc_pair = DocumentPair.from_directory(subdir)
                 doc_pair.load_embeddings(model, model_path)
-                
+
                 # Align
                 align_results = aligner.align(doc_pair)
-                
+
                 # Save outputs
                 output_builder.save_alignment(doc_pair, align_results, subdir)
-                
+
                 print(f"✓ Successfully processed {subdir.name}", flush=True)
                 results.append((subdir.name, "success", None))
-                
+
             except Exception as e:
                 import traceback
                 error_msg = f"Error: {str(e)}\n{traceback.format_exc()}"
                 print(f"❌ Error processing {subdir.name}: {error_msg}", flush=True)
                 results.append((subdir.name, "failed", error_msg))
-    
+
     # Analyze results
     successful = [r for r in results if r[1] == "success"]
     failed = [r for r in results if r[1] == "failed"]
-    
+
     print(f"\n{'=' * 60}")
     print(f"Pipeline complete!")
     print(f"Successfully processed: {len(successful)}/{len(to_process)}")
@@ -141,5 +144,5 @@ def run_pipeline(input_dir, input_format, output_dir, model="labse", model_path=
         for name, status, error in failed:
             print(f"  - {name}")
     print(f"{'=' * 60}\n", flush=True)
-    
+
     return results

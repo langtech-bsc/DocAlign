@@ -271,13 +271,23 @@ def align_sentence_level(
 	model_path=None,
 	used_src_indices=None,
 	used_tgt_indices=None,
-	debug=True,  # NEW: Enable debugging
+	debug=True,
+	window=20,
+	baseline_threshold=0.70,
+	neighbour_margin=0.08,
+	fuzzy_threshold=0.55,
+	min_span_score=0.60,
 ):
 	"""
 	Align sentences with extensive debugging checkpoints.
-	
+
 	Args:
 		debug: If True, prints detailed info at each stage
+		window: Search window for monotonic alignment
+		baseline_threshold: Minimum cosine similarity for baseline matches
+		neighbour_margin: How much to relax threshold for neighbor expansion
+		fuzzy_threshold: Threshold for 1-to-2 and 2-to-1 span matching
+		min_span_score: Floor for greedy span selection
 	"""
 	if debug:
 		print_section("STAGE 0: Input & Sentence Splitting")
@@ -336,11 +346,11 @@ def align_sentence_level(
 	# BASELINE
 	# =====================================================================
 	if debug:
-		print_section("STAGE 2: Baseline Alignment (window=10, threshold=0.70)")
-	
+		print_section(f"STAGE 2: Baseline Alignment (window={window}, threshold={baseline_threshold})")
+
 	baseline = fast_monotonic_window_alignment(
 		emb_A, emb_B, sentences_A, sentences_B,
-		window=20, threshold=0.70, debug=debug
+		window=window, threshold=baseline_threshold, debug=debug
 	)
 	
 	if debug:
@@ -354,10 +364,10 @@ def align_sentence_level(
 	# NEIGHBOR EXPANSION
 	# =====================================================================
 	if debug:
-		print_section("STAGE 3: Neighbor Expansion (threshold=0.70, margin=0.08)")
-	
+		print_section(f"STAGE 3: Neighbor Expansion (threshold={baseline_threshold}, margin={neighbour_margin})")
+
 	expanded = expand_neighbours(baseline, emb_A, emb_B, sentences_A, sentences_B,
-								 threshold=0.70, neighbour_margin=0.08)
+								 threshold=baseline_threshold, neighbour_margin=neighbour_margin)
 	
 	if debug:
 		print(f"Baseline: {len(baseline)} pairs → Expanded: {len(expanded)} pairs")
@@ -369,7 +379,7 @@ def align_sentence_level(
 	if debug:
 		print_section("STAGE 4: Fuzzy Span Extraction (span-based)")
 
-	fuzzy_spans = extract_fuzzy_spans(emb_A, emb_B, threshold=0.7)
+	fuzzy_spans = extract_fuzzy_spans(emb_A, emb_B, threshold=fuzzy_threshold)
 	if debug:
 		print(f"Found {len(fuzzy_spans)} fuzzy span candidates")
 
@@ -427,14 +437,12 @@ def align_sentence_level(
 	used_tgt = set()
 	selected = []
 
-	MIN_SPAN_SCORE = 0.60
-
 	for cand in span_candidates:
 		src_start, src_end = cand['src_span']
 		tgt_start, tgt_end = cand['tgt_span']
 		score = cand['score']
 
-		if score < MIN_SPAN_SCORE:
+		if score < min_span_score:
 			continue
 
 		src_set = set(range(src_start, src_end + 1))
@@ -443,6 +451,12 @@ def align_sentence_level(
 		if src_set & used_src:
 			continue
 		if tgt_set & used_tgt:
+			continue
+
+		# Length-based sanity check
+		src_text_cand = " ".join(sentences_A[src_start:src_end+1])
+		tgt_text_cand = " ".join(sentences_B[tgt_start:tgt_end+1])
+		if not is_valid_sentence_pair(src_text_cand, tgt_text_cand):
 			continue
 
 		selected.append(cand)

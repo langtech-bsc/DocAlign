@@ -8,9 +8,11 @@ from src.postprocess import rebuild
 class OutputBuilder:
     """Handles building and saving alignment outputs."""
     
-    def __init__(self, output_dir):
+    def __init__(self, output_dir, input_type="paragraph", min_chunk_score=0.0):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.input_type = input_type
+        self.min_chunk_score = min_chunk_score
     
     def save_alignment(self, doc_pair, alignment_results, path):
         """Save alignment metadata and chunks."""
@@ -34,6 +36,7 @@ class OutputBuilder:
             "input_A": str(doc_pair.path_a),
             "lang_B": str(doc_pair.lang_b),
             "input_B": str(doc_pair.path_b),
+            "dtw_cost": results.get("dtw_cost"),
             "alignment_path": results["para_path"],
             "sentence_alignments": results["sentence_alignments"]
         }
@@ -56,7 +59,11 @@ class OutputBuilder:
             sentence_alignment_index=sent_index
         )
         
-        return rebuild.build_chunks(paragraph_blocks, max_words=max_words)
+        return rebuild.build_chunks(
+            paragraph_blocks, max_words=max_words,
+            input_type=self.input_type,
+            min_chunk_score=self.min_chunk_score,
+        )
     
     def _save_chunks(self, chunks, subdir, name):
         """Save chunks to JSONL."""

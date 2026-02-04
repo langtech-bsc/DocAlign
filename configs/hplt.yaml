@@ -1,0 +1,20 @@
+# Configuration for HPLT DocHPLT data
+# Adjust input/output paths and language pair as needed
+
+input: "data/raw/hplt_en_fi"
+input_format: "document_pair"
+input_type: "paragraph"
+
+output: "data/aligned/hplt_en_fi"
+
+model: "labse"
+model_path: "/gpfs/projects/bsc88/mt_translation/mt-cleaning-pipeline/labse_model"
+
+dtw: "approx"
+
+data_mode: "comparable"
+
+# Optional per-threshold overrides (uncomment to customise):
+# thresholds:
+#   para_sim_threshold: 0.50
+#   min_chunk_score: 0.70
