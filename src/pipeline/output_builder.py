@@ -44,7 +44,7 @@ class OutputBuilder:
         outfile = subdir / f"{name}_meta.jsonl"
         io.save_jsonl([io._make_json_safe(meta)], outfile)
     
-    def _build_chunks(self, results, max_words=2500):
+    def _build_chunks(self, results, max_words=500):
         """Build aligned chunks from sentence alignments."""
         sent_index = {
             (entry["paragraph_A"], entry["paragraph_B"]): entry["sentence_pairs"]

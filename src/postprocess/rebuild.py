@@ -51,7 +51,7 @@ def build_paragraph_blocks(all_paragraph_alignments_sorted,
     return blocks
 
 
-def build_chunks(paragraph_blocks, max_words=2500, input_type="paragraph",
+def build_chunks(paragraph_blocks, max_words=1000, input_type="paragraph",
                  min_chunk_score=0.0):
     """
     Group paragraph blocks into chunks not exceeding max_words
