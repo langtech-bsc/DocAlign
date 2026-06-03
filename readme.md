@@ -1,4 +1,4 @@
-# MT-Aligner-Pipeline
+# DocAlign
 
 A document alignment pipeline for building parallel corpora from multilingual document pairs. It takes documents in two languages (e.g., an English book and its Finnish translation), aligns them at both paragraph and sentence level using semantic embeddings and Dynamic Time Warping, and outputs aligned text chunks suitable for training machine translation models.
 
