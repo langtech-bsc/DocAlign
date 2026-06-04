@@ -219,4 +219,5 @@ The pipeline supports parallel processing via Python `multiprocessing` (spawn mo
 - [fastdtw](https://github.com/slaypni/fastdtw) — Fast approximate DTW
 - [dtaidistance](https://github.com/wannesm/dtaidistance) — Exact DTW
 - [Spacy](https://spacy.io/) + `xx_ent_wiki_sm` — Multilingual sentence splitting
+- [GlotLID](https://github.com/cisnlp/GlotLID) — Language identification model, licensed under Apache 2.0 with notices (see `THIRD_PARTY_LICENSES/GlotLID_LICENSE`)
 - NumPy, PyYAML, tqdm
