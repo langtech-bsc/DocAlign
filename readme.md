@@ -221,3 +221,9 @@ The pipeline supports parallel processing via Python `multiprocessing` (spawn mo
 - [Spacy](https://spacy.io/) + `xx_ent_wiki_sm` — Multilingual sentence splitting
 - [GlotLID](https://github.com/cisnlp/GlotLID) — Language identification model, licensed under Apache 2.0 with notices (see `THIRD_PARTY_LICENSES/GlotLID_LICENSE`)
 - NumPy, PyYAML, tqdm
+
+## Acknowledgements
+
+This work was supported by the Generalitat de Catalunya (Aina project). Reference: SDD001/22/000005. Project(s): PN040300.
+
+This work is funded by the Ministerio para la Transformación Digital y de la Función Pública - Funded by EU – NextGenerationEU within the framework of the project Desarrollo de Modelos ALIA. 
